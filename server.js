@@ -3,6 +3,7 @@ express = require('express')
 request = require('request')
 axios = require('axios')
 bodyParser = require('body-parser')
+path = require('path')
 port = 3000
 config = require('./config/secret')
 
@@ -10,7 +11,14 @@ config = require('./config/secret')
 var complaintState = "inactive"
 var dept = "NULL"
 const app = express()
+var complaints = []
+
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({
+	extended: true
+}));
+app.set("views",path.resolve(__dirname,"views"))
+app.set("view engine","ejs")
 
 var dummy = {
 	first_name: "Rohan",
@@ -34,19 +42,13 @@ app.get('/webhook',(req,res)=>{
 
 app.post('/webhook', function (req, res) {
 	var data = req.body;
-
-	var ok = true
-	try {
-		var val = data.entry[0].messaging[0]
-	} catch(e) {
-		ok = false
-	}
-	if (data.object === 'page' && ok) {
+	if (data.object === 'page')  {
 		data.entry.forEach(function(entry) {
 			var pageID = entry.id;
 			var timeOfEvent = entry.time;
 
 			entry.messaging.forEach(function(event) {
+				dummy.user_id = event.sender.id
 				if(event.postback) {
 					console.log("Getting Started!")
 					sendIntroText(event.sender.id)
@@ -286,7 +288,14 @@ function receivedMessage(event) {
 				dept = event.message.text
 				getLocation(event.sender.id)
 			} else if(complaintState === "deptchosen") {
-				console.log(`Department: ${dept}\nComplaint: ${event.message.text}`)
+				var obj = {
+					user_id: event.sender.id,
+					department: dept,
+					complaint: event.message.text
+				}
+				complaints.push(obj)
+				console.log(complaints)
+				//console.log(`Department: ${dept}\nComplaint: ${event.message.text}`)
 				sendTextMessage(event.sender.id, `Sending your ticket to ${dept} Division. We'll get back to you soon!`)
 				complaintState = "inactive"
 				dept = "NULL"
@@ -304,11 +313,32 @@ function receivedMessage(event) {
 }
 
 app.post("/emergency",(req, res)=>{
-	sendTextMessage(dummy.user_id, "Cyclone in Khandagiri")
-	res.status(200).send("Sent")
+	console.log(req.body)
+	var department = req.body.department
+	var message = req.body.description
+	var password = req.body.password
+	if(password === "password") {
+		sendTextMessage(dummy.user_id, `${department} issued the following announcement -\n${message}`)
+		res.status(200).redirect("/")
+	} else {
+		res.redirect("/emergency")
+	}
 })
 
+app.get("/emergency",(req,res)=>{
+	res.render("emergency")
+})
 
+app.get("/login",(req, res)=>{
+	res.render("login")
+})
+app.post("/login",(req,res)=>{
+	if(req.body.password === "password") {
+		res.redirect("/profile/"+req.body.username)
+	} else {
+		res.redirect("/login")
+	}
+})
 
 app.get('/',(req,res)=>{
 	res.send('<h1>Hello World.</h1>')
