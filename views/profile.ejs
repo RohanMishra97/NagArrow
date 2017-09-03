@@ -1,0 +1,25 @@
+<% include header %>
+	<div class="container">
+		<div class="well">
+			<h2><%=  data.department %></h2>
+			<table class="table">
+				<thead>
+					<tr>
+						<th>UserID</th>
+						<th>Complaint</th>
+					</tr>
+				</thead>
+				<tbody>
+					<% data.complaints.forEach(complaint =>{ %>
+						<tr class="primary">
+							<td><%= complaint.user_id %></td>
+							<td><%= complaint.complaint %></td>
+						</tr>
+					<% }) %>
+				</tbody>
+			</table>
+		</div>
+	</div>
+	<script type="text/javascript">
+	</script>
+<% include footer %>
